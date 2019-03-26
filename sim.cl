@@ -1,5 +1,5 @@
 #include "idm.h"
-#include "../epic_visualizer.h"
+#include "epic_visualizer.h"
 
 
 __constant fixedpt dt = FIXEDPT_QUARTER;

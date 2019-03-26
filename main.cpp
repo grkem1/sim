@@ -8,10 +8,10 @@
 #include <cstdlib>
 
 #include <signal.h>
-#include <boost/date_time/posix_time/posix_time.hpp>
+// #include <boost/date_time/posix_time/posix_time.hpp>
 #include <random>
 #include <array>
-#include <aocl_utils.h>
+// #include <aocl_utils.h>
 #include <algorithm>
 
 #ifdef __APPLE__
@@ -23,7 +23,7 @@
 #include <boost/program_options.hpp>
 #include "constants.h"
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <aocl_utils.h>
+// #include <aocl_utils.h>
 #include <iomanip>
 #include <iostream>
 #include <fstream>
@@ -31,7 +31,7 @@
 #include "constants.h"    
 #include <malloc.h>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <aocl_utils.h>
+// #include <aocl_utils.h>
 #include <iomanip>
 #include <iostream>
 #include <fstream>
@@ -40,7 +40,7 @@
 #include <malloc.h>
 #include <math.h>
 #include "idm.h"
-#include "Kernel/fixmath.h"
+// #include "Kernel/fixmath.h"
 #include "epic_visualizer.h"
 
 using namespace aocl_utils;

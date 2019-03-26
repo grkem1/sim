@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Kernel/idm.h"
-#include "Kernel/fixedptc.h"
+#include "idm.h"
+#include "fixedptc.h"
 
 // #if (C != 1)
 // #include <vector>
