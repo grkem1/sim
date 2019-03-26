@@ -217,29 +217,37 @@ int main(int argc, char *argv[])
     printf("Simulation starts");
     Options options(argc,argv);
 
-    if(options.has("c") || options.has("cpu")){
-        useCpu = true;
-    }
-    if(options.has("w")){
-        localWorkSize = options.get<int>("w");
-    }
-    if(options.has("l")){
-        laneCount = options.get<int>("l");
-    }
-    if(options.has("scan")){
-        scan = true;
-    }
-    if(options.has("it")){
-        iteration = options.get<int>("it");
-    }
-    if(options.has("emulate")){
-        emulate=true;
-    }
-    if(options.has("swi")){
-        singleWorkItem = true;
-    }
-    if(options.has("aocx")){
-        aocx = options.get<std::string>("aocx");
+    for(short i=1; i < argc; i++){
+        std::string arg = argv[i];   
+        if(arg == "c" || arg == "cpu"){
+            useCpu = true;
+        }
+        else if(argv == "w")){
+            localWorkSize = (int)argv;
+        }
+        else if(arg == "l"){
+            laneCount = options.get<int>("l");
+        }
+        else if(arg == "scan"){
+            scan = true;
+        }
+        else if(arg == "it"){
+            iteration = options.get<int>("it");
+        }
+        else if(arg == "emulate"){
+            emulate=true;
+        }
+        else if(arg == "swi"){
+            singleWorkItem = true;
+        }
+        else if(arg == "aocx"){
+            aocx = options.get<std::string>("aocx");
+        }
+        else if(arg == "agents"){
+            agentsize = options.get<int>("agents");
+            globalWorkSize = agentsize;
+            if(agentsize > MAX_AGENT_SIZE){std::cout << std::endl << "too many agents" << std::endl; return 0;}
+        }
     }
     if(scan){
         for(agentsize = 5; agentsize <= 200; agentsize += 10){
@@ -247,12 +255,6 @@ int main(int argc, char *argv[])
         }
         return 0;
     }
-    if(options.has("agents")){
-        agentsize = options.get<int>("agents");
-        globalWorkSize = agentsize;
-        if(agentsize > MAX_AGENT_SIZE){std::cout << std::endl << "too many agents" << std::endl; return 0;}
-    }
-    
     startSim();
 
 return 0;
@@ -363,8 +365,10 @@ void initialiseKernel(){
             CL_QUEUE_PROPERTIES, (const cl_queue_properties)(CL_QUEUE_PROFILING_ENABLE), 0
         };
         // m_command_queue = clCreateCommandQueueWithProperties(m_context, device_id, props, &ret);
-        m_command_queue = clCreateCommandQueue(m_context, device_id, CL_QUEUE_PROFILING_ENABLE /*0*/, &ret);
-        if(ret != CL_SUCCESS)printError(ret);
+        // m_command_queue = clCreateCommandQueue(m_context, device_id, CL_QUEUE_PROFILING_ENABLE /*0*/, &ret);
+        // if(ret != CL_SUCCESS)printError(ret);
+
+        OCL_CHECK(ret, cl::CommandQueue m_command_queue(m_context, device_id, NULL,NULL,NULL,&ret));
 
         /* Create Memory Buffer */
 
