@@ -77,6 +77,7 @@ cl_ulong time_exec; /// measures kernel execution time through profiler
 
 /////////// KERNEL VARIABLES //////////
 
+    std::vector<cl::Memory> inoutBufVec;
     cl_int err = 0;
     size_t globalWorkSize = 1;
     size_t localWorkSize = 1;
@@ -302,7 +303,6 @@ void initialiseKernel(){
         /* Create Memory Buffer */
         OCL_CHECK(err, agents_buffer = cl::Buffer(m_context, CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
                                                     sizeof(CLVehicle) * MAX_AGENT_SIZE, lanes, &err));
-        std::vector<cl::Memory> inoutBufVec;
         inoutBufVec.push_back(agents_buffer);
 
         OCL_CHECK(err, err = m_command_queue.enqueueMigrateMemObjects(inoutBufVec, 0));
@@ -333,7 +333,6 @@ int executeKernel(){
             iteration_end = getCurrentTimestamp();
             if(singleWorkItem) break;
         }
-        m_command_queue.
         m_command_queue.finish();
         OCL_CHECK(err, err = m_command_queue.enqueueMigrateMemObjects(inoutBufVec, CL_MIGRATE_MEM_OBJECT_HOST));
 
@@ -370,8 +369,8 @@ int executeKernel(){
 
 bool run_model(){       
 
-    find_laneAgentCount(laneAgentCount, lanes, laneCount);
-    CLVehicle veh;
+    // find_laneAgentCount(laneAgentCount, lanes, laneCount);
+    // CLVehicle veh;
    
     return true;
 }
