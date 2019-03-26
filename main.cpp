@@ -42,8 +42,8 @@
 #include "idm.h"
 // #include "Kernel/fixmath.h"
 #include "epic_visualizer.h"
+#include <xcl2.hpp>
 
-using namespace aocl_utils;
 using namespace std;
 namespace pt = boost::posix_time;
 
@@ -77,6 +77,7 @@ cl_ulong time_exec; /// measures kernel execution time through profiler
 
 /////////// KERNEL VARIABLES //////////
 
+    cl_int err = 0;
     size_t globalWorkSize = 1;
     size_t localWorkSize = 1;
     bool useCpu = false;
@@ -87,11 +88,11 @@ cl_ulong time_exec; /// measures kernel execution time through profiler
     bool singleWorkItem = true; // select Kernel(swi) and adapt iteration count  /// TRUE BY DEFAULT -- change if not-so-pure version is to be used -- 
     bool &swi = singleWorkItem;
 
-    cl_context m_context = NULL;
-    cl_command_queue m_command_queue = NULL;
-    cl_mem m_memObjects[1]; // lanes;
-    cl_program m_program = NULL;
-    cl_kernel m_kernel = NULL;
+    cl::Context m_context;
+    cl::CommandQueue m_command_queue;
+    cl::Buffer agents_buffer; // lanes;
+    cl::Program m_program;
+    cl::Kernel m_kernel;
 
 //////////// OUTPUT STREAMS /////////
 
@@ -139,65 +140,28 @@ float rand_float() {
 //     velocities << std::endl;
 // }
 
-// void epic_visualizer(const CLVehicle * vehs, int length, int vehcount, int laneCount = 3, bool fixedpoint = true){
-//     bool state=true;
-//     int proportion;
-//     int size;
-//     std::vector< std::vector<int> > road;
-//     road.resize(laneCount);
+// High-resolution timer.
+double getCurrentTimestamp() {
+#ifdef _WIN32 // Windows
+  // Use the high-resolution performance counter.
 
-//     for(proportion = 1;;proportion++){
-//         if(length/proportion <= 128){
-//             size = length / proportion;
-//             break;
-//         }
-//     }
+  static LARGE_INTEGER ticks_per_second = {};
+  if(ticks_per_second.QuadPart == 0) {
+    // First call - get the frequency.
+    QueryPerformanceFrequency(&ticks_per_second);
+  }
 
-//     printf("\n");
-//     for(int k=0;k<size;k++){
-//         printf("=");
-//     }
-//     printf("\n");
+  LARGE_INTEGER counter;
+  QueryPerformanceCounter(&counter);
 
-//     for(size_t i = 0; i < vehcount; i++)
-//     {
-//         road[vehs[i].lane[state]].push_back(fixedpoint ? ( fixedpt_tofloat(vehs[i].position[state]) ) : vehs[i].position[state]);
-//     }
-//     for(size_t i = 0; i < laneCount; i++){
-//         std::transform(road[i].begin(), road[i].end(), road[i].begin(), [proportion](int& c){return c / proportion;});
-//         std::sort(road[i].begin(), road[i].end());
-//     }
-
-//     int j;
-//     for(size_t k = 0; k < laneCount; k++){
-//         j = 0;
-//         for(size_t i = 0; i < size; i++)
-//         {
-//             if(road[k].size() == 0){
-//                 for(int k=0;k<size;k++){
-//                     printf("-");
-//                 }
-//                 printf("\n");
-//                 break;
-//             }
-//             if(i == road[k][j]){
-//                 printf("0");
-//                 j++;
-//                 if(j == road[k].size()){
-//                     j--;
-//                 }
-//             }else{
-//             printf("-");
-//             }
-//         }
-//         printf("\n");
-//     }
-
-//     for(int k=0;k<size;k++){
-//         printf("=");
-//     }
-//     printf("\n");
-// }
+  double seconds = double(counter.QuadPart) / double(ticks_per_second.QuadPart);
+  return seconds;
+#else         // Linux
+  timespec a;
+  clock_gettime(CLOCK_MONOTONIC, &a);
+  return (double(a.tv_nsec) * 1.0e-9) + double(a.tv_sec);
+#endif
+}
 
 /////////// FUNCTION DECLARATIONS ///////////////
 
@@ -215,36 +179,34 @@ int main(int argc, char *argv[])
     // waitMilliseconds(5000);
     // std::getchar();
     printf("Simulation starts");
-    Options options(argc,argv);
 
     for(short i=1; i < argc; i++){
-        std::string arg = argv[i];   
-        if(arg == "c" || arg == "cpu"){
+        if(argv[i] == "-c" || argv[i] == "-cpu"){
             useCpu = true;
         }
-        else if(argv == "w")){
-            localWorkSize = (int)argv;
+        else if(argv[i] == "-w"){
+            localWorkSize = stoi(argv[++i]);
         }
-        else if(arg == "l"){
-            laneCount = options.get<int>("l");
+        else if(argv[i] == "-l"){
+            laneCount = stoi(argv[++i]);
         }
-        else if(arg == "scan"){
+        else if(argv[i] == "-scan"){
             scan = true;
         }
-        else if(arg == "it"){
-            iteration = options.get<int>("it");
+        else if(argv[i] == "-it"){
+            iteration = stoi(argv[++i]);
         }
-        else if(arg == "emulate"){
+        else if(argv[i] == "-emulate"){
             emulate=true;
         }
-        else if(arg == "swi"){
+        else if(argv[i] == "-swi"){
             singleWorkItem = true;
         }
-        else if(arg == "aocx"){
-            aocx = options.get<std::string>("aocx");
+        else if(argv[i] == "-aocx"){
+            aocx = std::string(argv[++i]);
         }
-        else if(arg == "agents"){
-            agentsize = options.get<int>("agents");
+        else if(argv[i] == "-agents"){
+            agentsize = stoi(argv[++i]);
             globalWorkSize = agentsize;
             if(agentsize > MAX_AGENT_SIZE){std::cout << std::endl << "too many agents" << std::endl; return 0;}
         }
@@ -309,123 +271,47 @@ void initialiseProblem(){
 void initialiseKernel(){
         //running on FPGA
     if(useCpu == false){
-        cl_device_id device_id = NULL;
-        cl_int ret;
+        std::vector<cl::Device> devices = xcl::get_xil_devices();
+        
+        cl::Device device = devices[0];
         std::cout << "Initialising Kernel on the FPGA" << std::endl;
 
-        cl_uint num_of_platforms;
-        cl_uint num_of_devices = 0;
-        int platform_iid;
-
-        if (clGetPlatformIDs(0, NULL, &num_of_platforms) != CL_SUCCESS)
-        {
-            std::cout << "Unable to get platform_id" << std::endl;
-            exit(1);
-        }
-        cl_platform_id *platform_ids = new cl_platform_id[num_of_platforms];
-        if (clGetPlatformIDs(num_of_platforms, platform_ids, NULL) != CL_SUCCESS)
-        {
-            std::cout << "Unable to get platform_id" << std::endl;
-            exit(1);
-        }
-
-        printf("Platform: %s\n", getPlatformName(*platform_ids).c_str());
-
-        bool found = false;
-        for (int i = 0; i < num_of_platforms; i++)
-            if (clGetDeviceIDs(platform_ids[i], CL_DEVICE_TYPE_ALL, 1, &device_id, &num_of_devices) == CL_SUCCESS)
-            {
-                printf("  %s\n", getDeviceName(device_id).c_str() );
-                found = true;
-                std::cout << "Found FPGA at platform " << i << " device_id:" << device_id << std::endl;
-                platform_iid = i;
-                break;
-            }
-        if (!found)
-        {
-            std::cout << "Can not find any OpenCL device" << std::endl;
-            exit(1);
-        }
+        OCL_CHECK(err, m_context = cl::Context(device, NULL, NULL, NULL, &err));
+        OCL_CHECK(err, m_command_queue = cl::CommandQueue(m_context, device, CL_QUEUE_PROFILING_ENABLE, &err));
+        OCL_CHECK(err, std::string device_name = device.getInfo<CL_DEVICE_NAME>(&err));
+        std::cout << "Found Device=" << device_name.c_str() << std::endl;
+       
 
 
-        cl_context_properties contextProperties[] =
-            {
-                CL_CONTEXT_PLATFORM,
-                (cl_context_properties)platform_ids[platform_iid],
-                0};
 
-        m_context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_ALL,
-                                                NULL, NULL, &ret);
-        delete platform_ids;
-        if(ret != CL_SUCCESS){
-            std::cout << "error creating context" << std::endl;
-        }
+        // double create_start = getCurrentTimestamp();
+        // double create_stop = getCurrentTimestamp();
+        // double create_duration = create_stop - create_start;
+        // total_execution += create_duration;
+        // std::cout << " Create Duration : " << create_duration << std::endl; 
 
-        const cl_queue_properties props[] = {
-            CL_QUEUE_PROPERTIES, (const cl_queue_properties)(CL_QUEUE_PROFILING_ENABLE), 0
-        };
-        // m_command_queue = clCreateCommandQueueWithProperties(m_context, device_id, props, &ret);
-        // m_command_queue = clCreateCommandQueue(m_context, device_id, CL_QUEUE_PROFILING_ENABLE /*0*/, &ret);
-        // if(ret != CL_SUCCESS)printError(ret);
-
-        OCL_CHECK(ret, cl::CommandQueue m_command_queue(m_context, device_id, NULL,NULL,NULL,&ret));
-
-        /* Create Memory Buffer */
-
-        double create_start = getCurrentTimestamp();
-        m_memObjects[0] = clCreateBuffer(m_context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR,
-                                            sizeof(CLVehicle) * MAX_AGENT_SIZE, lanes, &ret);
-        double create_stop = getCurrentTimestamp();
-        double create_duration = create_stop - create_start;
-        total_execution += create_duration;
-        std::cout << " Create Duration : " << create_duration << std::endl; 
-
-        if (ret != CL_SUCCESS) {
-            std::cerr<<"alloc buffer error" <<ret<< " " <<std::endl;
-            printError(ret) ;
-            std::cout << std::endl;
-            return ;
-        }
         /* Create Kernel Program from the binary */
 
-        int num_devices = 1;
+        std::string binaryFile = xcl::find_binary_file(device_name, "sim");
+        // m_program = createProgramFromBinary(m_context, binary_file.c_str(), &device_id, num_devices);
+        cl::Program::Binaries bins = xcl::import_binary_file(binaryFile);
+        devices.resize(1);
+        OCL_CHECK(err, m_program = cl::Program(m_context, devices, bins, NULL, &err));
+        OCL_CHECK(err, m_kernel = cl::Kernel(m_program, "sim", &err));
 
-        std::string fileName("sim");
-        if(emulate) fileName += "_emulator";
-        if(aocx != "") fileName = aocx;
-        std::string binary_file = getBoardBinaryFile(fileName.c_str(), device_id);
-        printf("Using AOCX: %s\n", binary_file.c_str());
-        m_program = createProgramFromBinary(m_context, binary_file.c_str(), &device_id, num_devices);
-        ret = clBuildProgram(m_program, 1, &device_id, NULL, NULL, NULL);
+        /* Create Memory Buffer */
+        OCL_CHECK(err, agents_buffer = cl::Buffer(m_context, CL_MEM_USE_HOST_PTR | CL_MEM_READ_WRITE,
+                                                    sizeof(CLVehicle) * MAX_AGENT_SIZE, lanes, &err));
+        std::vector<cl::Memory> inoutBufVec;
+        inoutBufVec.push_back(agents_buffer);
 
-        if (ret != CL_SUCCESS) {
-            // Determine the reason for the error
-            char buildLog[16384];
-            clGetProgramBuildInfo(m_program, device_id, CL_PROGRAM_BUILD_LOG,
-                                sizeof(buildLog), buildLog, NULL);
-            std::cerr << "Error in kernel: " << std::endl;
-            std::cerr << buildLog;
-            clReleaseProgram(m_program);
-            return ;
-        }
+        OCL_CHECK(err, err = m_command_queue.enqueueMigrateMemObjects(inoutBufVec, 0));
 
-        /* Create OpenCL Kernel */
-        m_kernel = clCreateKernel(m_program, "sim", &ret);
-        if (ret != CL_SUCCESS) {
-            std::cerr<<"create kernel error"<<std::endl;
-            printError(ret);
-            return ;
-        }
-        /* Set OpenCL Kernel Parameters */
-        ret = clSetKernelArg(m_kernel,  0, sizeof(cl_mem), &m_memObjects[0]);
-        ret |= clSetKernelArg(m_kernel, 1, sizeof(short), &agentsize);
-        ret |= clSetKernelArg(m_kernel, 2, sizeof(short), &laneCount);
-        ret |= clSetKernelArg(m_kernel, 3, sizeof(short), &iteration);
-
-        if (ret != CL_SUCCESS) {
-            std::cerr<<"memory bind error"<<std::endl;
-            return ;
-        }
+        int narg = 0;
+        OCL_CHECK(err, err = m_kernel.setArg(narg++, agents_buffer));
+        OCL_CHECK(err, err = m_kernel.setArg(narg++, agentsize));
+        OCL_CHECK(err, err = m_kernel.setArg(narg++, laneCount));
+        OCL_CHECK(err, err = m_kernel.setArg(narg++, iteration));
 
     }else if(useCpu == true){
     }
@@ -438,25 +324,18 @@ int executeKernel(){
 
     if( useCpu == false ){
 
-        cl_int ret = 0;
-
         if(singleWorkItem) { globalWorkSize = 1; localWorkSize = 1; }
-
-        ret = 0;
 
         fpga_start_time = getCurrentTimestamp(); 
         for(int i = 0; i < iteration; i++){
             iteration_start = getCurrentTimestamp();
-            ret |= clEnqueueNDRangeKernel(m_command_queue, m_kernel, 1, NULL,
-                                        &globalWorkSize, &localWorkSize,
-                                        0, NULL, /*&kernel_execution*/NULL);
-            clFinish(m_command_queue);
-            // clEnqueueReadBuffer(m_command_queue, m_memObjects[2], CL_TRUE, 0, MAX_AGENT_SIZE * sizeof(int), m_position, 0, NULL, NULL);
+            OCL_CHECK(err, err = m_command_queue.enqueueTask(m_kernel));
             iteration_end = getCurrentTimestamp();
-            // std::cout << i << " " << (iteration_end - iteration_start) * 1e6 << std::endl;
             if(singleWorkItem) break;
         }
-        clEnqueueReadBuffer(m_command_queue, m_memObjects[0], CL_TRUE, 0, MAX_AGENT_SIZE * sizeof(CLVehicle), lanes, 0, NULL, NULL);
+        m_command_queue.
+        m_command_queue.finish();
+        OCL_CHECK(err, err = m_command_queue.enqueueMigrateMemObjects(inoutBufVec, CL_MIGRATE_MEM_OBJECT_HOST));
 
         fpga_end_time = getCurrentTimestamp();
         execution_time = fpga_end_time - fpga_start_time;
@@ -464,11 +343,6 @@ int executeKernel(){
 
         // time_exec = getStartEndTime(kernel_execution);
 
-        if (ret != CL_SUCCESS) {
-            std::cerr<<"kernel launch error "<<ret<<std::endl;
-            printError(ret);
-            return false;
-        }
         std::cout << "Execution Time: " << execution_time*1e6 << " Memory Read Time: " << mem_read*1e6 << std::endl;
 
         ex_kernel_end = getCurrentTimestamp();
@@ -503,23 +377,23 @@ bool run_model(){
 }
 
 void releaseKernel(){
-    cl_int ret;
-    execution_time = 0;
-    total_execution = 0;
-    if(useCpu == false){
-        ret =  clReleaseProgram(m_program);
-        for (int i = 0; i < 3; i++)
-        {
-            clReleaseMemObject(m_memObjects[i]);
-        }
-        ret |=  clReleaseCommandQueue(m_command_queue);
-        ret |=  clReleaseContext(m_context);
-        ret |=  clReleaseKernel(m_kernel);
-        if (ret != CL_SUCCESS) {
-            std::cerr<<"release error"<<std::endl;
-            return;
-        }
-    }
+    // cl_int ret;
+    // execution_time = 0;
+    // total_execution = 0;
+    // if(useCpu == false){
+    //     ret =  clReleaseProgram(m_program);
+    //     for (int i = 0; i < 3; i++)
+    //     {
+    //         clReleaseMemObject(m_memObjects[i]);
+    //     }
+    //     ret |=  clReleaseCommandQueue(m_command_queue);
+    //     ret |=  clReleaseContext(m_context);
+    //     ret |=  clReleaseKernel(m_kernel);
+    //     if (ret != CL_SUCCESS) {
+    //         std::cerr<<"release error"<<std::endl;
+    //         return;
+    //     }
+    // }
     free(vehiclesFloat);
     return;
 }
@@ -534,15 +408,13 @@ void releaseKernel(){
     // #include <cstring>
     // using namespace std;
     // #include <iostream>
-    // #include "Kernel/fixedptc.h"
     // #include "stdio.h"
     // #include "limits.h"
-    // #include "Kernel/idm.h"
     // int main(){
-    //     int z[100];
-    //     unsigned char a = 5;
-    //     unsigned char b = 10;
-    //     std::cout << z[a*b];
+    //     std::string a("10");
+    //     // char b[]="10";
+    //     // std::cout << a == b;
+    //     std::cout << stoi(a);
     // }
 
 
