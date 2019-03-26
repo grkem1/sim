@@ -2,3 +2,8 @@
 tempCodeRunnerFile
 tempCodeRunnerFile.cpp
 sim
+*.swp
+_x
+.Xil
+xclbin
+*.log

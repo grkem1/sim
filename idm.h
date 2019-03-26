@@ -1,5 +1,6 @@
 #pragma once
 
+// #include "constants.h"
 #include "fixedptc.h"
 // https://sourceforge.net/projects/fixedptc/
 #define MAX_VEHICLES_PER_LANE 128
@@ -332,162 +333,162 @@ int lc(CLVehicle * veh, short lane, short position, CLVehicle * lanes, short lan
 
 ////////////////////////// idm_float.h /////////////////////////////
 
-#if(C!=1)
+// #if(C!=1)
 
-float idm_float(float v, float dVFront, int vdesired, float ds){
-    float free_road_term, interaction_term, vRat, ss, temp;
-    if(ds <= 0) return -5;
+// float idm_float(float v, float dVFront, int vdesired, float ds){
+//     float free_road_term, interaction_term, vRat, ss, temp;
+//     if(ds <= 0) return -5;
 
-    // if (v<vdesired){
-        vRat =  v * 0.0625;// /vdesired;
-        free_road_term = 1.8;
-    // } else {
-        // vRat = vdesired/v;
-        // free_road_term = -2.0f;
-    // }
-    vRat = pow(vRat, 4);
-    free_road_term = free_road_term * (1 - vRat);
+//     // if (v<vdesired){
+//         vRat =  v * 0.0625;// /vdesired;
+//         free_road_term = 1.8;
+//     // } else {
+//         // vRat = vdesired/v;
+//         // free_road_term = -2.0f;
+//     // }
+//     vRat = pow(vRat, 4);
+//     free_road_term = free_road_term * (1 - vRat);
 
-    ss =  v * 1.5 + v * dVFront / 4 + 2; // multiplication by 0.26 instead of division by 3.79 // UP: division by 4
-    temp = ss / ds;
-    interaction_term = -1.8f * temp * temp;
-    return free_road_term + interaction_term;
-}
+//     ss =  v * 1.5 + v * dVFront / 4 + 2; // multiplication by 0.26 instead of division by 3.79 // UP: division by 4
+//     temp = ss / ds;
+//     interaction_term = -1.8f * temp * temp;
+//     return free_road_term + interaction_term;
+// }
 
-bool updateAgent_float(CLVehicle *veh, float acceleration, float dt, float ds, bool state){
-    acceleration = acceleration > 5  ? 5 : acceleration;
-    acceleration = acceleration < -5 ? -5 : acceleration;
-    fixedpt dv = acceleration * dt;
-    fixedpt v = veh->velocity[!state] + dv;
-    v = v < 0 ? 0 : v;
-    float distance = v * dt;
+// bool updateAgent_float(CLVehicle *veh, float acceleration, float dt, float ds, bool state){
+//     acceleration = acceleration > 5  ? 5 : acceleration;
+//     acceleration = acceleration < -5 ? -5 : acceleration;
+//     fixedpt dv = acceleration * dt;
+//     fixedpt v = veh->velocity[!state] + dv;
+//     v = v < 0 ? 0 : v;
+//     float distance = v * dt;
    
-    ds = ds < 0 ? 0 : ds;
-    if(distance > ds * 0.9){
-        distance = ds * 0.9;
-        v = distance / dt;
-    }
-    veh->position[state] = veh->position[!state] + distance;
-    veh->velocity[state] = v;
+//     ds = ds < 0 ? 0 : ds;
+//     if(distance > ds * 0.9){
+//         distance = ds * 0.9;
+//         v = distance / dt;
+//     }
+//     veh->position[state] = veh->position[!state] + distance;
+//     veh->velocity[state] = v;
 
-    return true;
-}
+//     return true;
+// }
 
-float calculateIncentive_float(float accThisNew, float accThisOld, float politeness, float accObsNew, float accObsOld, float accFreeNew, float accFreeOld ){
-    return ( accThisNew - accThisOld + politeness * ( accObsNew - accObsOld + accFreeNew - accFreeOld ) ) ;
-}
+// float calculateIncentive_float(float accThisNew, float accThisOld, float politeness, float accObsNew, float accObsOld, float accFreeNew, float accFreeOld ){
+//     return ( accThisNew - accThisOld + politeness * ( accObsNew - accObsOld + accFreeNew - accFreeOld ) ) ;
+// }
 
-int lc_float(CLVehicle * veh, short lane, short position, CLVehicle * lanes, short laneCount, short * laneAgentCount, bool state, short * remover, short * removerIndex){ // position: position in the lane, nth car when sorted through positions
-    float politeness = 0.1;
-    float safe_decel = -3;//fixedpt_rconst(-3.0);
-    float incThreshold = 1;//fixedpt_rconst(1);
-    CLVehicle lefts[2], rights[2];
-    // lefts[0] = lefts[1] = rights[0] = rights[1] = LANES(0,0);
-    memset(lefts, 0, sizeof(CLVehicle)*2);
-    memset(rights, 0, sizeof(CLVehicle)*2);
-    CLVehicle *neighbors[2];
-    neighbors[0] = lefts;
-    neighbors[1] = rights;
+// int lc_float(CLVehicle * veh, short lane, short position, CLVehicle * lanes, short laneCount, short * laneAgentCount, bool state, short * remover, short * removerIndex){ // position: position in the lane, nth car when sorted through positions
+//     float politeness = 0.1;
+//     float safe_decel = -3;//fixedpt_rconst(-3.0);
+//     float incThreshold = 1;//fixedpt_rconst(1);
+//     CLVehicle lefts[2], rights[2];
+//     // lefts[0] = lefts[1] = rights[0] = rights[1] = LANES(0,0);
+//     memset(lefts, 0, sizeof(CLVehicle)*2);
+//     memset(rights, 0, sizeof(CLVehicle)*2);
+//     CLVehicle *neighbors[2];
+//     neighbors[0] = lefts;
+//     neighbors[1] = rights;
 
-    // short incentiveLeft, incentiveRight;
-    float incentives[2];
+//     // short incentiveLeft, incentiveRight;
+//     float incentives[2];
 
-    bool want_left = true;
-    bool want_right = true;
+//     bool want_left = true;
+//     bool want_right = true;
 
-    float args[9][3];
-    float results[9]; //= {[0 ... 8] = 32};
-    float vels[7];
-    float pos[7];
+//     float args[9][3];
+//     float results[9]; //= {[0 ... 8] = 32};
+//     float vels[7];
+//     float pos[7];
 
-    #pragma unroll
-    for(unsigned char i = 0; i < 2; i++)
-    {
-        if( (i == 0 && lane == 0) || (i == 1 && lane == laneCount - 1 ))continue;
-        find_neighbors(veh, lanes, state, neighbors[i], LANE_AGENT_COUNT(lane+(2*i-1), !state), lane+2*i-1 );
-    }
+//     #pragma unroll
+//     for(unsigned char i = 0; i < 2; i++)
+//     {
+//         if( (i == 0 && lane == 0) || (i == 1 && lane == laneCount - 1 ))continue;
+//         find_neighbors(veh, lanes, state, neighbors[i], LANE_AGENT_COUNT(lane+(2*i-1), !state), lane+2*i-1 );
+//     }
     
-    vels[0] = lefts[1].velocity[!state];
-    vels[1] = lefts[0].velocity[!state];
-    vels[2] = LANES(lane, position+1).velocity[!state];
-    vels[3] = LANES(lane, position-1).velocity[!state];
-    vels[4] = rights[1].velocity[!state];
-    vels[5] = rights[0].velocity[!state];
-    vels[6] = veh->velocity[!state];
+//     vels[0] = lefts[1].velocity[!state];
+//     vels[1] = lefts[0].velocity[!state];
+//     vels[2] = LANES(lane, position+1).velocity[!state];
+//     vels[3] = LANES(lane, position-1).velocity[!state];
+//     vels[4] = rights[1].velocity[!state];
+//     vels[5] = rights[0].velocity[!state];
+//     vels[6] = veh->velocity[!state];
 
-    pos[0] = lefts[1].position[!state];
-    pos[1] = lefts[0].position[!state];
-    pos[2] = LANES(lane,position+1).position[!state];
-    pos[3] = LANES(lane,position-1).position[!state];
-    pos[4] = rights[1].position[!state];
-    pos[5] = rights[0].position[!state];
-    pos[6] = veh->position[!state];
+//     pos[0] = lefts[1].position[!state];
+//     pos[1] = lefts[0].position[!state];
+//     pos[2] = LANES(lane,position+1).position[!state];
+//     pos[3] = LANES(lane,position-1).position[!state];
+//     pos[4] = rights[1].position[!state];
+//     pos[5] = rights[0].position[!state];
+//     pos[6] = veh->position[!state];
 
-    #if(C==1)
-    uchar arg_ind_r[9] = {0,0,2,2,4,4,6,6,6};
-    uchar arg_ind_l[9] = {1,6,6,3,5,6,3,1,5};
-    #else
-    unsigned char arg_ind_r[9] = {0,0,2,2,4,4,6,6,6};
-    unsigned char arg_ind_l[9] = {1,6,6,3,5,6,3,1,5};   
-    #endif
+//     #if(C==1)
+//     uchar arg_ind_r[9] = {0,0,2,2,4,4,6,6,6};
+//     uchar arg_ind_l[9] = {1,6,6,3,5,6,3,1,5};
+//     #else
+//     unsigned char arg_ind_r[9] = {0,0,2,2,4,4,6,6,6};
+//     unsigned char arg_ind_l[9] = {1,6,6,3,5,6,3,1,5};   
+//     #endif
 
-    #pragma unroll
-    for(short i = 0; i < 9; i++)
-    {
-        args[i][1] = vels[arg_ind_l[i]] - vels[arg_ind_r[i]];
-        args[i][2] = pos[arg_ind_l[i]] - pos[arg_ind_r[i]] - FIXEDPT_FIVE;
-        results[i] = 0;
-    }
+//     #pragma unroll
+//     for(short i = 0; i < 9; i++)
+//     {
+//         args[i][1] = vels[arg_ind_l[i]] - vels[arg_ind_r[i]];
+//         args[i][2] = pos[arg_ind_l[i]] - pos[arg_ind_r[i]] - FIXEDPT_FIVE;
+//         results[i] = 0;
+//     }
     
-    #pragma unroll 1
-    for(short i = 0; i < 9; i++)
-    {
-        fixedpt ds = args[i][2];
-        if( (lane==0 && (i==0||i==1||i==7) ) ){
-            want_left = false;
-            continue;
-        }
-        if( (lane==laneCount-1 && (i==4||i==5||i==8) ) ){
-            want_right = false;
-            continue;
-        }
-        if( (lefts[1].id==0&&(i==0||i==1)) || (position==LANE_AGENT_COUNT(lane, !state)&&(i==2||i==3)) || (rights[1].id==0&&(i==4||i==5)) ){
-            continue;
-        }
-        if( (lefts[0].id==0&&(i==0||i==7)) || (position==1&&(i==3||i==6)) || ( rights[0].id==0&&(i==4||i==8) ) ){
-            ds = FIXEDPT_1024;
-        }
-        results[i] = idm_float(args[i][0], args[i][1], 50, ds);
-    }
-    want_left = want_left && (results[1] >= safe_decel);
-    want_right = want_right && (results[5] >= safe_decel);
+//     #pragma unroll 1
+//     for(short i = 0; i < 9; i++)
+//     {
+//         fixedpt ds = args[i][2];
+//         if( (lane==0 && (i==0||i==1||i==7) ) ){
+//             want_left = false;
+//             continue;
+//         }
+//         if( (lane==laneCount-1 && (i==4||i==5||i==8) ) ){
+//             want_right = false;
+//             continue;
+//         }
+//         if( (lefts[1].id==0&&(i==0||i==1)) || (position==LANE_AGENT_COUNT(lane, !state)&&(i==2||i==3)) || (rights[1].id==0&&(i==4||i==5)) ){
+//             continue;
+//         }
+//         if( (lefts[0].id==0&&(i==0||i==7)) || (position==1&&(i==3||i==6)) || ( rights[0].id==0&&(i==4||i==8) ) ){
+//             ds = FIXEDPT_1024;
+//         }
+//         results[i] = idm_float(args[i][0], args[i][1], 50, ds);
+//     }
+//     want_left = want_left && (results[1] >= safe_decel);
+//     want_right = want_right && (results[5] >= safe_decel);
 
 
-    #pragma unroll
-    for(size_t i = 0; i < 2; i++)
-    {
-        incentives[i] = calculateIncentive_float( results[7+i], results[6], politeness, results[1 + 4*i], results[4*i], results[3], results[2] );
-    }
-    want_left = want_left && (incentives[0] > incThreshold);
-    want_right = want_right && (incentives[1] > incThreshold);
+//     #pragma unroll
+//     for(size_t i = 0; i < 2; i++)
+//     {
+//         incentives[i] = calculateIncentive_float( results[7+i], results[6], politeness, results[1 + 4*i], results[4*i], results[3], results[2] );
+//     }
+//     want_left = want_left && (incentives[0] > incThreshold);
+//     want_right = want_right && (incentives[1] > incThreshold);
     
 
-    bool prefer_left = true;
+//     bool prefer_left = true;
 
-    ///////ACT////////
+//     ///////ACT////////
 
-    if(want_left && (!want_right || incentives[0] > incentives[1] || (incentives[0] == incentives[1] && prefer_left))) {
-        updateAgent_float(veh, results[7], dt, (lefts[0].id != 0) ? lefts[0].position[!state]-veh->position[!state]-5 : 1024, state);
-        lane_change(veh, lanes, lane, position, -1, state, laneAgentCount, remover, removerIndex);
-        return -1;
-    } else if(want_right) {
-        updateAgent_float(veh, results[8], dt, (rights[0].id != 0) ? rights[0].position[!state]-veh->position[!state]-5 : 1024, state);
-        lane_change(veh, lanes, lane, position, 1, state, laneAgentCount, remover, removerIndex);
-        return 1;
-    }
-    updateAgent(veh, results[6], dt, LANES(lane, position-1).id!=0 ? LANES(lane, position-1).position[!state]-veh->position[!state]-5 : 1024, state);
-    LANES(lane, position) = *veh;
-    return 0;
-}
+//     if(want_left && (!want_right || incentives[0] > incentives[1] || (incentives[0] == incentives[1] && prefer_left))) {
+//         updateAgent_float(veh, results[7], dt, (lefts[0].id != 0) ? lefts[0].position[!state]-veh->position[!state]-5 : 1024, state);
+//         lane_change(veh, lanes, lane, position, -1, state, laneAgentCount, remover, removerIndex);
+//         return -1;
+//     } else if(want_right) {
+//         updateAgent_float(veh, results[8], dt, (rights[0].id != 0) ? rights[0].position[!state]-veh->position[!state]-5 : 1024, state);
+//         lane_change(veh, lanes, lane, position, 1, state, laneAgentCount, remover, removerIndex);
+//         return 1;
+//     }
+//     updateAgent(veh, results[6], dt, LANES(lane, position-1).id!=0 ? LANES(lane, position-1).position[!state]-veh->position[!state]-5 : 1024, state);
+//     LANES(lane, position) = *veh;
+//     return 0;
+// }
 
-#endif
+// #endif

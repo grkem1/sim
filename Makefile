@@ -35,8 +35,8 @@ EXECUTABLE = sim
 
 EMCONFIG_DIR = $(XCLBIN)/$(DSA)
 
-BINARY_CONTAINERS += $(XCLBIN)/vector_addition.$(TARGET).$(DSA).xclbin
-BINARY_CONTAINER_vector_addition_OBJS += $(XCLBIN)/vector_add.$(TARGET).$(DSA).xo
+BINARY_CONTAINERS += $(XCLBIN)/sim.$(TARGET).$(DSA).xclbin
+BINARY_CONTAINER_vector_addition_OBJS += $(XCLBIN)/sim.$(TARGET).$(DSA).xo
 
 #Include Libraries
 include $(ABS_COMMON_REPO)/libs/opencl/opencl.mk
@@ -54,12 +54,12 @@ all: $(EXECUTABLE) $(BINARY_CONTAINERS) emconfig
 exe: $(EXECUTABLE)
 
 # Building kernel
-$(XCLBIN)/vector_add.$(TARGET).$(DSA).xo: ./src/vector_addition.cl
+$(XCLBIN)/sim.$(TARGET).$(DSA).xo: ./sim.cl
 	mkdir -p $(XCLBIN)
-	$(XOCC) $(CLFLAGS) -c -k vector_add -I'$(<D)' -o'$@' '$<'
+	$(XOCC) $(CLFLAGS) -c -k sim -I'$(<D)' -o'$@' '$<'
 
-$(XCLBIN)/vector_addition.$(TARGET).$(DSA).xclbin: $(BINARY_CONTAINER_vector_addition_OBJS)
-	$(XOCC) $(CLFLAGS) -l $(LDCLFLAGS) --nk vector_add:1 -o'$@' $(+)
+$(XCLBIN)/sim.$(TARGET).$(DSA).xclbin: $(BINARY_CONTAINER_vector_addition_OBJS)
+	$(XOCC) $(CLFLAGS) -l $(LDCLFLAGS) --nk sim:1 -o'$@' $(+)
 
 # Building Host
 $(EXECUTABLE): $(HOST_SRCS) $(HOST_HDRS)
@@ -110,4 +110,5 @@ docs: README.md
 
 README.md: description.json
 	$(ABS_COMMON_REPO)/utility/readme_gen/readme_gen.py description.json
+
 

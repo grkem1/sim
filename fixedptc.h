@@ -156,7 +156,7 @@ fixedpt_tofloat(fixedpt A){
 		if( ( (A >> i) & 1 ) ){
 			// std::cout << i << std::endl;
 			// a += powf(2.0, (float)(i - FIXEDPT_FBITS));
-			a += ldexp( 1, i - FIXEDPT_FBITS );
+			a += ldexp( (int)(1), (int)(i - FIXEDPT_FBITS) );
 		}
 	}
 	return a;
