@@ -62,7 +62,7 @@
  */
 
 #ifndef FIXEDPT_BITS
-#define FIXEDPT_BITS	32
+#define FIXEDPT_BITS	16
 #endif
 
 #if FIXEDPT_BITS == 32
@@ -75,12 +75,17 @@ typedef int64_t fixedpt;
 typedef	__int128_t fixedptd;
 typedef	uint64_t fixedptu;
 typedef	__uint128_t fixedptud;
+#elif FIXEDPT_BITS == 16
+typedef short fixedpt;
+typedef	int fixedptd;
+typedef	ushort fixedptu;
+typedef	uint fixedptud;
 #else
 #error "FIXEDPT_BITS must be equal to 32 or 64"
 #endif
 
 #ifndef FIXEDPT_WBITS
-#define FIXEDPT_WBITS	24
+#define FIXEDPT_WBITS	12
 #endif
 
 #if FIXEDPT_WBITS >= FIXEDPT_BITS
@@ -92,8 +97,8 @@ typedef	__uint128_t fixedptud;
 #define FIXEDPT_FBITS	(FIXEDPT_BITS - FIXEDPT_WBITS)
 #define FIXEDPT_FMASK	(((fixedpt)1 << FIXEDPT_FBITS) - 1)
 
-#define fixedpt_rconst(R) ((fixedpt)((R) * (((fixedptd)1 << FIXEDPT_FBITS) \
-	+ ((R) >= 0 ? 0.5 : -0.5))))
+#define fixedpt_rconst(R) (fixedpt)((R) * ((fixedptd)1 << FIXEDPT_FBITS) ) \
+	//+ ((R) >= 0 ? 0.5 : -0.5))))
 #define fixedpt_fromint(I) ((fixedptd)(I) << FIXEDPT_FBITS)
 #define fixedpt_toint(F) ((F) >> FIXEDPT_FBITS)
 #define fixedpt_add(A,B) ((A) + (B))
@@ -104,22 +109,31 @@ typedef	__uint128_t fixedptud;
 	((fixedpt)(((fixedptd)(A) << FIXEDPT_FBITS) / (fixedptd)(B)))
 #define fixedpt_fracpart(A) ((fixedpt)(A) & FIXEDPT_FMASK)
 
+#define FIXEDPT_1024 ((fixedpt)((fixedpt)1 << (FIXEDPT_FBITS+10) )) 
+#define FIXEDPT_MAX ((fixedpt)((fixedptu)(-1) >> 1) )
+#define FIXEDPT_MIN (fixedpt) (1 << (FIXEDPT_BITS-1))
 #define FIXEDPT_ONE	((fixedpt)((fixedpt)1 << FIXEDPT_FBITS))
 #define FIXEDPT_ONE_HALF (FIXEDPT_ONE >> 1)
+#define FIXEDPT_QUARTER (FIXEDPT_ONE >> 2)
 #define FIXEDPT_TWO	(FIXEDPT_ONE + FIXEDPT_ONE)
+#define FIXEDPT_FIVE ((fixedpt)((fixedpt)5 << FIXEDPT_FBITS))
 #define FIXEDPT_PI	fixedpt_rconst(3.14159265358979323846)
 #define FIXEDPT_TWO_PI	fixedpt_rconst(2 * 3.14159265358979323846)
 #define FIXEDPT_HALF_PI	fixedpt_rconst(3.14159265358979323846 / 2)
 #define FIXEDPT_E	fixedpt_rconst(2.7182818284590452354)
+#define FIXEDPT_1_5 ((fixedpt)((fixedpt)3 << (FIXEDPT_FBITS - 1) ))
+#define FIXEDPT_1_8 fixedpt_rconst(1.8)
 
 #define fixedpt_abs(A) ((A) < 0 ? -(A) : (A))
 
+// static const fixedpt FIXEDPT_INV_MAX_SPEED = fixedpt_rconst(0.02);
 
 /* Multiplies two fixedpt numbers, returns the result. */
 static inline fixedpt
 fixedpt_mul(fixedpt A, fixedpt B)
 {
-	return (((fixedptd)A * (fixedptd)B) >> FIXEDPT_FBITS);
+	// (fixedptd)A * (fixedptd)B 
+	return (((fixedptd)A * (fixedptd)B) >> FIXEDPT_FBITS > FIXEDPT_MAX ? FIXEDPT_MAX : ((fixedptd)A * (fixedptd)B) >> FIXEDPT_FBITS);
 }
 
 
@@ -127,8 +141,27 @@ fixedpt_mul(fixedpt A, fixedpt B)
 static inline fixedpt
 fixedpt_div(fixedpt A, fixedpt B)
 {
-	return (((fixedptd)A << FIXEDPT_FBITS) / (fixedptd)B);
+	fixedptd Ad = (fixedptd)A << FIXEDPT_FBITS;
+	fixedptd Bd = (fixedptd)B;
+	return (Ad / Bd ) ;
 }
+
+#if(C!=1)
+#include "math.h"
+static inline float
+fixedpt_tofloat(fixedpt A){
+	float a = 0;
+	for(uint i = 0; i < FIXEDPT_BITS; i++)
+	{
+		if( ( (A >> i) & 1 ) ){
+			// std::cout << i << std::endl;
+			// a += powf(2.0, (float)(i - FIXEDPT_FBITS));
+			a += ldexp( 1, i - FIXEDPT_FBITS );
+		}
+	}
+	return a;
+}
+#endif
 
 /*
  * Note: adding and substracting fixedpt numbers can be done by using
@@ -144,6 +177,8 @@ fixedpt_div(fixedpt A, fixedpt B)
  * be returned, meaning there will be invalid, bogus digits outside the
  * specified precisions.
  */
+
+#if G==1
 static inline void
 fixedpt_str(fixedpt A, char *str, int max_dec)
 {
@@ -155,7 +190,7 @@ fixedpt_str(fixedpt A, char *str, int max_dec)
 
 	if (max_dec == -1)
 #if FIXEDPT_BITS == 32
-		max_dec = 2;
+		max_dec = FIXEDPT_FBITS;
 #elif FIXEDPT_BITS == 64
 		max_dec = 10;
 #else
@@ -192,9 +227,10 @@ fixedpt_str(fixedpt A, char *str, int max_dec)
 	else
 		str[slen] = '\0';
 }
+#endif
 
-/* Converts the given fixedpt number into a string, using a static
- * (non-threadsafe) string buffer */
+// /* Converts the given fixedpt number into a string, using a static
+//  * (non-threadsafe) string buffer */
 // static inline char*
 // fixedpt_cstr(const fixedpt A, const int max_dec)
 // {
@@ -330,7 +366,7 @@ fixedpt_exp(fixedpt fp)
 	return (fixedpt_mul(k, xp));
 }
 
-
+#if (G != 1)
 /* Returns the natural logarithm of the given fixedpt number. */
 static inline fixedpt
 fixedpt_ln(fixedpt x)
@@ -370,7 +406,7 @@ fixedpt_ln(fixedpt x)
 	return (fixedpt_mul(LN2, (log2 << FIXEDPT_FBITS)) + f
 	    - fixedpt_mul(s, f - R));
 }
-	
+#endif 	
 
 /* Returns the logarithm of the given base of the given fixedpt number */
 static inline fixedpt
