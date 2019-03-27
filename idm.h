@@ -154,7 +154,8 @@ int remove(CLVehicle * lanes, short * remover, short * removerIndex){
             #if(C==1)
             memset(&LANES( lane, REMOVER(lane, index-1)), 0, sizeof(CLVehicle) );
             #else
-            std::memset(&LANES( lane, REMOVER(lane, index-1)), 0, sizeof(CLVehicle) );
+            // std::memset(&LANES( lane, REMOVER(lane, index-1)), 0, sizeof(CLVehicle) );
+            LANES(lane, REMOVER(lane, index-1)) = (const CLVehicle){0};
             #endif
             REMOVER(lane, index-1) = 0;
             // memset(&REMOVER(lane, index-1),0,sizeof(fixedpt));
@@ -194,10 +195,9 @@ int lc(CLVehicle * veh, short lane, short position, CLVehicle * lanes, short lan
     fixedpt politeness = 1; //0.1
     fixedpt safe_decel = -48;//fixedpt_rconst(-3.0);
     fixedpt incThreshold = FIXEDPT_ONE;//fixedpt_rconst(1);
-    CLVehicle lefts[2], rights[2];
+    CLVehicle lefts[2] = { {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0}, {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0} };
+    CLVehicle rights[2] = { {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0}, {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0} };
     // lefts[0] = lefts[1] = rights[0] = rights[1] = LANES(0,0);
-    memset(lefts, 0, sizeof(CLVehicle)*2);
-    memset(rights, 0, sizeof(CLVehicle)*2);
     CLVehicle *neighbors[2];
     neighbors[0] = lefts;
     neighbors[1] = rights;
