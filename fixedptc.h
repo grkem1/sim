@@ -146,22 +146,22 @@ fixedpt_div(fixedpt A, fixedpt B)
 	return (Ad / Bd ) ;
 }
 
-#if(C!=1)
-#include "math.h"
-static inline float
-fixedpt_tofloat(fixedpt A){
-	float a = 0;
-	for(uint i = 0; i < FIXEDPT_BITS; i++)
-	{
-		if( ( (A >> i) & 1 ) ){
-			// std::cout << i << std::endl;
-			// a += powf(2.0, (float)(i - FIXEDPT_FBITS));
-			a += ldexp( (int)(1), (int)(i - FIXEDPT_FBITS) );
-		}
-	}
-	return a;
-}
-#endif
+// #if(C!=1)
+// #include "math.h"
+// static inline float
+// fixedpt_tofloat(fixedpt A){
+// 	float a = 0;
+// 	for(uint i = 0; i < FIXEDPT_BITS; i++)
+// 	{
+// 		if( ( (A >> i) & 1 ) ){
+// 			// std::cout << i << std::endl;
+// 			// a += powf(2.0, (float)(i - FIXEDPT_FBITS));
+// 			a += ldexp( (int)(1), (int)(i - FIXEDPT_FBITS) );
+// 		}
+// 	}
+// 	return a;
+// }
+// #endif
 
 /*
  * Note: adding and substracting fixedpt numbers can be done by using
