@@ -179,7 +179,7 @@ void find_laneAgentCount(short * laneAgentCount, CLVehicle * lanes, short laneCo
 
 void set_laneAgentCount(short * laneAgentCount, short * removerIndex, bool state){
     #pragma unroll 1
-    for(unsigned char i = 0; i < LANE_MAX; i++)
+    for(short i = 0; i < LANE_MAX; i++)
     {
         LANE_AGENT_COUNT(i, state) -= removerIndex[i];
         LANE_AGENT_COUNT(i, !state) = LANE_AGENT_COUNT(i, state);
