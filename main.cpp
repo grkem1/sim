@@ -79,8 +79,8 @@ cl_ulong time_exec; /// measures kernel execution time through profiler
 
     std::vector<cl::Memory> inoutBufVec;
     cl_int err = 0;
-    size_t globalWorkSize = 1;
-    size_t localWorkSize = 1;
+    int globalWorkSize = 1;
+    int localWorkSize = 1;
     bool useCpu = false;
     std::string aocx;
     bool scan = false;
@@ -107,7 +107,7 @@ std::ofstream fpga_time("Results/fpga_time.txt");
 
 template <class T>
 void printArray(T * & array, int size){
-        for(size_t i = 0; i < size; i++)
+        for(int i = 0; i < size; i++)
     {
         std::cout << array[i] << " ";
     }
@@ -116,7 +116,7 @@ void printArray(T * & array, int size){
 
 template <class U>
 void writeArray(std::ofstream & out, U * array, int size){ 
-    for(size_t i = 0; i < size; i++)
+    for(int i = 0; i < size; i++)
     {
         out << std::setprecision(4) << std::right << std::setw(10) << array[i];
     }  
@@ -182,31 +182,31 @@ int main(int argc, char *argv[])
     printf("Simulation starts");
 
     for(short i=1; i < argc; i++){
-        if(argv[i] == "-c" || argv[i] == "-cpu"){
+        if( strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "-cpu") == 0 ){
             useCpu = true;
         }
-        else if(argv[i] == "-w"){
+        else if(strcmp(argv[i], "-w") == 0){
             localWorkSize = stoi(argv[++i]);
         }
-        else if(argv[i] == "-l"){
+        else if(strcmp(argv[i], "-l") == 0){
             laneCount = stoi(argv[++i]);
         }
-        else if(argv[i] == "-scan"){
+        else if(strcmp(argv[i], "-scan") == 0){
             scan = true;
         }
-        else if(argv[i] == "-it"){
+        else if(strcmp(argv[i], "-it") == 0){
             iteration = stoi(argv[++i]);
         }
-        else if(argv[i] == "-emulate"){
+        else if(strcmp(argv[i], "-emulate") == 0){
             emulate=true;
         }
-        else if(argv[i] == "-swi"){
+        else if(strcmp(argv[i], "-swi") == 0 ){
             singleWorkItem = true;
         }
-        else if(argv[i] == "-aocx"){
+        else if(strcmp(argv[i], "-aocx") == 0 ){
             aocx = std::string(argv[++i]);
         }
-        else if(argv[i] == "-agents"){
+        else if(strcmp(argv[i], "-agents") == 0 ){
             agentsize = stoi(argv[++i]);
             globalWorkSize = agentsize;
             if(agentsize > MAX_AGENT_SIZE){std::cout << std::endl << "too many agents" << std::endl; return 0;}

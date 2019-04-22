@@ -103,9 +103,9 @@ void moveZeros(CLVehicle * lanes, short lane, short * laneAgentCount, bool state
 // }
 
 void sortLane(CLVehicle * lanes, short lane, short * laneAgentCount, bool state){ // sort first time. Then move zeros back. -for consistency of indices-  
-    for(size_t i = LANE_AGENT_COUNT(lane, !state)+1; i <= LANE_AGENT_COUNT(lane, state); i++) // sondan baslayip basa gelemezsin. cunku sonuncu eleman icin array sortlanmamis
+    for(short i = LANE_AGENT_COUNT(lane, !state)+1; i <= LANE_AGENT_COUNT(lane, state); i++) // sondan baslayip basa gelemezsin. cunku sonuncu eleman icin array sortlanmamis
     {
-        size_t j = i;
+        short j = i;
         while( j > 1 && ( LANES(lane, j).position[!state] > LANES(lane, j-1).position[!state] || LANES(lane, j-1).id==0 ) ){
             swap(lanes, lane, j-1, j);
             j--;
@@ -114,7 +114,7 @@ void sortLane(CLVehicle * lanes, short lane, short * laneAgentCount, bool state)
 }
 
 void orderLanes(CLVehicle *lanes, short * laneAgentCount, bool state){
-    for(size_t i = 0; i < LANE_MAX; i++)
+    for(short i = 0; i < LANE_MAX; i++)
     {
         sortLane(lanes, i, laneAgentCount, state);
         moveZeros(lanes, i, laneAgentCount, state);
@@ -145,7 +145,7 @@ int lane_change(CLVehicle * veh, CLVehicle * lanes, short lane, short position, 
 }
 
 int remove(CLVehicle * lanes, short * remover, short * removerIndex){
-    #pragma unroll 1
+    // #pragma unroll 1
     for(size_t lane = 0; lane < LANE_MAX; lane++)
     {
         short index = removerIndex[lane];
@@ -178,7 +178,7 @@ void find_laneAgentCount(short * laneAgentCount, CLVehicle * lanes, short laneCo
 
 
 void set_laneAgentCount(short * laneAgentCount, short * removerIndex, bool state){
-    #pragma unroll 1
+    // #pragma unroll 1
     for(short i = 0; i < LANE_MAX; i++)
     {
         LANE_AGENT_COUNT(i, state) -= removerIndex[i];
@@ -195,9 +195,15 @@ int lc(CLVehicle * veh, short lane, short position, CLVehicle * lanes, short lan
     fixedpt politeness = 1; //0.1
     fixedpt safe_decel = -48;//fixedpt_rconst(-3.0);
     fixedpt incThreshold = FIXEDPT_ONE;//fixedpt_rconst(1);
-    CLVehicle lefts[2] = { {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0}, {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0} };
-    CLVehicle rights[2] = { {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0}, {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0} };
-    // lefts[0] = lefts[1] = rights[0] = rights[1] = LANES(0,0);
+    // CLVehicle lefts[2] = { {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0}, {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0} }; // commented out because compiler version does not recognize this type of initialization
+    // CLVehicle rights[2] = { {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0}, {.id=0, .velocity[0]=0, .velocity[1]=0, .position[0]=0, .position[1]=0} };
+    CLVehicle lefts[2];
+    CLVehicle rights[2];
+    lefts[1].id = lefts[1].velocity[0] = lefts[1].velocity[1] = lefts[1].position[0] = lefts[1].position[1] = 0;
+    lefts[0].id = lefts[0].velocity[0] = lefts[0].velocity[1] = lefts[0].position[0] = lefts[0].position[1] = 0;
+    rights[1].id = rights[1].velocity[0] = rights[1].velocity[1] = rights[1].position[0] = rights[1].position[1] = 0;
+    rights[0].id = rights[0].velocity[0] = rights[0].velocity[1] = rights[0].position[0] = rights[0].position[1] = 0;
+    // lefts[0] = lefts[1] = rights[0] = rights[1] = LANES(0,0); copy is expensive
     CLVehicle *neighbors[2];
     neighbors[0] = lefts;
     neighbors[1] = rights;
@@ -213,7 +219,7 @@ int lc(CLVehicle * veh, short lane, short position, CLVehicle * lanes, short lan
     fixedpt vels[7];
     fixedpt pos[7];
 
-    #pragma unroll
+    // #pragma unroll
     for(unsigned char i = 0; i < 2; i++)
     {
         if( (i == 0 && lane == 0) || (i == 1 && lane == laneCount - 1 ))continue;
@@ -270,7 +276,7 @@ int lc(CLVehicle * veh, short lane, short position, CLVehicle * lanes, short lan
     // args[7][2] = pos[1] - pos[6];
     // args[8][2] = pos[5] - pos[6];
 
-    #pragma unroll
+    // #pragma unroll
     for(short i = 0; i < 9; i++)
     {
         args[i][1] = vels[arg_ind_l[i]] - vels[arg_ind_r[i]];
@@ -278,7 +284,7 @@ int lc(CLVehicle * veh, short lane, short position, CLVehicle * lanes, short lan
         results[i] = 0;
     }
     
-    #pragma unroll 1
+    // #pragma unroll 1
     for(short i = 0; i < 9; i++)
     {
         fixedpt ds = args[i][2];
@@ -302,7 +308,7 @@ int lc(CLVehicle * veh, short lane, short position, CLVehicle * lanes, short lan
     want_right = want_right && (results[5] >= safe_decel);
 
 
-    #pragma unroll
+    // #pragma unroll
     for(size_t i = 0; i < 2; i++)
     {
         incentives[i] = calculateIncentive( results[7+i], results[6], politeness, results[1 + 4*i], results[4*i], results[3], results[2] );

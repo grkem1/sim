@@ -366,46 +366,46 @@ fixedpt_exp(fixedpt fp)
 	return (fixedpt_mul(k, xp));
 }
 
-#if (G != 1)
+#if (G != 1)  // commented out to suppress warning message
 /* Returns the natural logarithm of the given fixedpt number. */
-static inline fixedpt
-fixedpt_ln(fixedpt x)
-{
-	fixedpt log2, xi;
-	fixedpt f, s, z, w, R;
-	const fixedpt LN2 = fixedpt_rconst(0.69314718055994530942);
-	const fixedpt LG[7] = {
-		fixedpt_rconst(6.666666666666735130e-01),
-		fixedpt_rconst(3.999999999940941908e-01),
-		fixedpt_rconst(2.857142874366239149e-01),
-		fixedpt_rconst(2.222219843214978396e-01),
-		fixedpt_rconst(1.818357216161805012e-01),
-		fixedpt_rconst(1.531383769920937332e-01),
-		fixedpt_rconst(1.479819860511658591e-01)
-	};
+// static inline fixedpt
+// fixedpt_ln(fixedpt x)
+// {
+// 	fixedpt log2, xi;
+// 	fixedpt f, s, z, w, R;
+// 	const fixedpt LN2 = fixedpt_rconst(0.69314718055994530942);
+// 	const fixedpt LG[7] = {
+// 		fixedpt_rconst(6.666666666666735130e-01),
+// 		fixedpt_rconst(3.999999999940941908e-01),
+// 		fixedpt_rconst(2.857142874366239149e-01),
+// 		fixedpt_rconst(2.222219843214978396e-01),
+// 		fixedpt_rconst(1.818357216161805012e-01),
+// 		fixedpt_rconst(1.531383769920937332e-01),
+// 		fixedpt_rconst(1.479819860511658591e-01)
+// 	};
 
-	if (x < 0)
-		return (0);
-	if (x == 0)
-		return 0xffffffff;
+// 	if (x < 0)
+// 		return (0);
+// 	if (x == 0)
+// 		return 0xffffffff;
 
-	log2 = 0;
-	xi = x;
-	while (xi > FIXEDPT_TWO) {
-		xi >>= 1;
-		log2++;
-	}
-	f = xi - FIXEDPT_ONE;
-	s = fixedpt_div(f, FIXEDPT_TWO + f);
-	z = fixedpt_mul(s, s);
-	w = fixedpt_mul(z, z);
-	R = fixedpt_mul(w, LG[1] + fixedpt_mul(w, LG[3]
-	    + fixedpt_mul(w, LG[5]))) + fixedpt_mul(z, LG[0]
-	    + fixedpt_mul(w, LG[2] + fixedpt_mul(w, LG[4]
-	    + fixedpt_mul(w, LG[6]))));
-	return (fixedpt_mul(LN2, (log2 << FIXEDPT_FBITS)) + f
-	    - fixedpt_mul(s, f - R));
-}
+// 	log2 = 0;
+// 	xi = x;
+// 	while (xi > FIXEDPT_TWO) {
+// 		xi >>= 1;
+// 		log2++;
+// 	}
+// 	f = xi - FIXEDPT_ONE;
+// 	s = fixedpt_div(f, FIXEDPT_TWO + f);
+// 	z = fixedpt_mul(s, s);
+// 	w = fixedpt_mul(z, z);
+// 	R = fixedpt_mul(w, LG[1] + fixedpt_mul(w, LG[3]
+// 	    + fixedpt_mul(w, LG[5]))) + fixedpt_mul(z, LG[0]
+// 	    + fixedpt_mul(w, LG[2] + fixedpt_mul(w, LG[4]
+// 	    + fixedpt_mul(w, LG[6]))));
+// 	return (fixedpt_mul(LN2, (log2 << FIXEDPT_FBITS)) + f
+// 	    - fixedpt_mul(s, f - R));
+// }
 #endif 	
 
 /* Returns the logarithm of the given base of the given fixedpt number */

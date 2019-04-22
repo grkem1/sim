@@ -90,13 +90,13 @@ void epic_visualizer_C(const CLVehicle * lanes, int length, int vehcount, int la
     proportion--;
 
     int elements[LANE_MAX];
-    for(size_t i = 0; i < laneCount; i++)
+    for(int i = 0; i < laneCount; i++)
     {
         elements[i] = 0;
     }
-    for(size_t i = 0; i < laneCount; i++)
+    for(int i = 0; i < laneCount; i++)
     {
-        for(size_t j = 1; j < MAX_VEHICLES_PER_LANE; j++)
+        for(int j = 1; j < MAX_VEHICLES_PER_LANE; j++)
         {
             if( LANES(i,j).id == 0 ){
                 break;
@@ -111,9 +111,9 @@ void epic_visualizer_C(const CLVehicle * lanes, int length, int vehcount, int la
     }
     printf("\n\x1b[0m");
 
-    for(size_t i = 0; i < laneCount; i++)
+    for(int i = 0; i < laneCount; i++)
     {
-        for(size_t j = 0; j < size; j++)
+        for(int j = 0; j < size; j++)
         {
             if(elements[i] == 0){
                     printf("-");
