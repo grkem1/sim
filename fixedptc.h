@@ -409,22 +409,22 @@ fixedpt_exp(fixedpt fp)
 #endif 	
 
 /* Returns the logarithm of the given base of the given fixedpt number */
-static inline fixedpt
-fixedpt_log(fixedpt x, fixedpt base)
-{
-	return (fixedpt_div(fixedpt_ln(x), fixedpt_ln(base)));
-}
+// static inline fixedpt
+// fixedpt_log(fixedpt x, fixedpt base)
+// {
+// 	return (fixedpt_div(fixedpt_ln(x), fixedpt_ln(base)));
+// }
 
 
 /* Return the power value (n^exp) of the given fixedpt numbers */
-static inline fixedpt
-fixedpt_pow(fixedpt n, fixedpt exp)
-{
-	if (exp == 0)
-		return (FIXEDPT_ONE);
-	if (n < 0)
-		return 0;
-	return (fixedpt_exp(fixedpt_mul(fixedpt_ln(n), exp)));
-}
+// static inline fixedpt
+// fixedpt_pow(fixedpt n, fixedpt exp)
+// {
+// 	if (exp == 0)
+// 		return (FIXEDPT_ONE);
+// 	if (n < 0)
+// 		return 0;
+// 	return (fixedpt_exp(fixedpt_mul(fixedpt_ln(n), exp)));
+// }
 
 #endif

@@ -42,7 +42,7 @@
 #include "idm.h"
 // #include "Kernel/fixmath.h"
 #include "epic_visualizer.h"
-#include <xcl2.hpp>
+#include "xcl2.hpp"
 
 using namespace std;
 namespace pt = boost::posix_time;
@@ -60,8 +60,8 @@ namespace pt = boost::posix_time;
 
 ///////// PROBLEM VARIABLES ///////////
 
-    int laneCount = 4;
-    int agentsize = 10;
+    short laneCount = 4;
+    short agentsize = 10;
     CLVehicle * lanes;
     short laneAgentCount[LANE_MAX * 2];
     short removerIndex[LANE_MAX]{0};
@@ -84,7 +84,7 @@ cl_ulong time_exec; /// measures kernel execution time through profiler
     bool useCpu = false;
     std::string aocx;
     bool scan = false;
-    int iteration = 10;       
+    short iteration = 10;       
     bool emulate = false;        // select Kernel if to be worked on computer
     bool singleWorkItem = true; // select Kernel(swi) and adapt iteration count  /// TRUE BY DEFAULT -- change if not-so-pure version is to be used -- 
     bool &swi = singleWorkItem;
@@ -232,7 +232,7 @@ void startSim(){
     initialiseKernel();
     executeKernel();
     // writeVehicles(myfile, space_front, true);
-    // epic_visualizer(vehicles, 128, agentsize, lanes);
+     epic_visualizer_C(lanes, 128, agentsize, 4, false);
     releaseKernel();
 
     // if(useCpu) cpu_time << numOfAgent << " " << (int)total_execution << std::endl;
@@ -259,14 +259,15 @@ void initialiseProblem(){
     lanes = (CLVehicle *)calloc(LANE_MAX * MAX_VEHICLES_PER_LANE, sizeof(CLVehicle));
     vehiclesFloat = (CLVehicleFloat *)calloc(MAX_AGENT_SIZE, sizeof(CLVehicle));
 
-    for(size_t i = 1; i <= agentsize / 2; i++){
-        LANES(0, i-1).id = i;
-        LANES(0, i-1).position[0] = LANES(0, i-1).position[1] = fixedpt_fromint ( 6 * (agentsize - i) );
+    for(short i = 1; i <= agentsize / 2; i++){
+        LANES(0, i).id = i;
+        LANES(0, i).position[0] = LANES(0, i).position[1] = fixedpt_fromint ( 6 * (agentsize - i) );
     }
-    for(size_t i = (agentsize / 2) + 1; i <= agentsize; i++){
-        LANES(1, i - agentsize/2 - 1 ).id = i;
-        LANES(1, i - agentsize/2 - 1 ).position[0] = LANES(1, i - agentsize/2 - 1).position[1] = fixedpt_fromint ( 6 * (agentsize - i) );
+    for(short i = (agentsize / 2) + 1; i <= agentsize; i++){
+        LANES(1, i - agentsize/2 ).id = i;
+        LANES(1, i - agentsize/2 ).position[0] = LANES(1, i - agentsize/2).position[1] = fixedpt_fromint ( 6 * (agentsize - i) );
     }
+    epic_visualizer_C(lanes, 128, agentsize, 4, false);
 }
 
 void initialiseKernel(){
@@ -333,8 +334,9 @@ int executeKernel(){
             iteration_end = getCurrentTimestamp();
             if(singleWorkItem) break;
         }
-        m_command_queue.finish();
+
         OCL_CHECK(err, err = m_command_queue.enqueueMigrateMemObjects(inoutBufVec, CL_MIGRATE_MEM_OBJECT_HOST));
+        OCL_CHECK(err, err = m_command_queue.finish());
 
         fpga_end_time = getCurrentTimestamp();
         execution_time = fpga_end_time - fpga_start_time;
